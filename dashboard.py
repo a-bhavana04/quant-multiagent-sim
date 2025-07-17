@@ -18,11 +18,11 @@ from app.state import order_book
 load_dotenv()
 API_KEY = os.getenv("ALPHA_VANTAGE_KEY")
 if not API_KEY:
-    st.error("❌ ALPHA_VANTAGE_KEY missing! Add it to your .env file.")
+    st.error("ALPHA_VANTAGE_KEY error.")
     st.stop()
 
 st.set_page_config(page_title="Quant Trading Simulator", layout="wide")
-st.title("📈 Real-Time Quant Trading Simulator")
+st.title("Real-Time Quant Trading Simulator")
 
 db = SessionLocal()
 
