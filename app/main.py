@@ -8,9 +8,9 @@ from pydantic import BaseModel
 
 from app.agents.agent_base import Agent
 from app.services.market_data import MarketDataFeed
-from app.state import order_book  # shared order book
+from app.state import order_book 
 
-load_dotenv()  # load API keys from .env
+load_dotenv() 
 
 app = FastAPI(title="Quant Multi-Agent Trading Simulator")
 
