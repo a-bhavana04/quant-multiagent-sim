@@ -9,9 +9,7 @@ from stable_baselines3 import PPO
 import numpy as np
 
 from app.services.order_book import Order
-from app.state import order_book  # shared order book
-
-# ---- Helper: Real-time headline fetching with NewsAPI ----
+from app.state import order_book  
 
 def fetch_latest_headline(symbol):
     api_key = os.getenv("NEWSAPI_KEY")
@@ -49,7 +47,7 @@ class FinBertSentiment:
 
 sentiment_analyzer = FinBertSentiment()
 
-# ---- Base Agent ----
+
 
 class BaseAgent:
     def __init__(self, name: str, window_size=5):
@@ -102,7 +100,7 @@ class BaseAgent:
     def decide(self, features):
         raise NotImplementedError("Each specialized agent must implement decide()")
 
-# ---- Specialized Agents ----
+
 
 class TrendFollowerAgent(BaseAgent):
     """
@@ -121,9 +119,9 @@ class MeanReverterAgent(BaseAgent):
     """
     def decide(self, features):
         deviation = features["mean_price"] - self.current_price
-        if deviation > 1:  # price below mean → buy
+        if deviation > 1:  
             return self.buy()
-        elif deviation < -1:  # price above mean → sell
+        elif deviation < -1:  
             return self.sell()
         return None
 
@@ -132,7 +130,6 @@ class SentimentAgent(BaseAgent):
     Uses real news headlines + FinBERT sentiment to decide.
     """
     def decide(self, features):
-        # Use first symbol in agent's name as a hint for which stock to fetch news for
         symbol = self.name.split("_")[0]
         headline = fetch_latest_headline(symbol)
         if headline:
@@ -182,7 +179,7 @@ class PPOAgent(BaseAgent):
             features["mean_price"],
             features["momentum"],
             features["volatility"],
-            0, 0  # pad if your trained model expects shape (5,)
+            0, 0  
         ]).reshape(1, -1)
 
         action, _ = self.model.predict(obs, deterministic=True)
