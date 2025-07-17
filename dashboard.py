@@ -15,7 +15,6 @@ from app.agents.agent_base import (
 from app.services.market_data import MarketDataFeed
 from app.state import order_book
 
-# Load API key
 load_dotenv()
 API_KEY = os.getenv("ALPHA_VANTAGE_KEY")
 if not API_KEY:
@@ -27,7 +26,6 @@ st.title("📈 Real-Time Quant Trading Simulator")
 
 db = SessionLocal()
 
-# --- User authentication ---
 if "user" not in st.session_state:
     st.session_state.user = None
 
@@ -35,14 +33,14 @@ if st.session_state.user is None:
     tab1, tab2 = st.tabs(["Login", "Register"])
 
     with tab1:
-        st.subheader("🔐 Login")
+        st.subheader("Login")
         username = st.text_input("Username", key="login_user")
         password = st.text_input("Password", type="password", key="login_pass")
         if st.button("Login"):
             user = db.query(User).filter_by(username=username, hashed_password=password).first()
             if user:
                 st.session_state.user = user
-                st.success(f"✅ Logged in as {username}")
+                st.success(f"Logged in as {username}")
                 st.rerun()
             else:
                 st.error("Invalid credentials")
@@ -64,8 +62,8 @@ if st.session_state.user is None:
 else:
     st.success(f"Welcome, {st.session_state.user.username}!")
 
-    # --- User portfolio ---
-    st.header("📂 Your Portfolio")
+   
+    st.header("Your Portfolio")
 
     user_portfolio = db.query(Portfolio).filter_by(user_id=st.session_state.user.id).all()
     symbols = [p.symbol for p in user_portfolio]
@@ -83,14 +81,14 @@ else:
     else:
         st.info("Your portfolio is empty. Add stocks below!")
 
-    # --- Add new stocks with live symbol search ---
+    
     st.subheader("🆕 Add Stocks to Your Portfolio (with Validation)")
 
     symbol_input = st.text_input("Type company name or symbol (e.g., 'Tesla' or 'TSLA')", key="symbol_input")
 
     if st.button("Search & Add Symbol"):
         if not symbol_input:
-            st.warning("⚠️ Please enter a company name or ticker symbol.")
+            st.warning("⚠Please enter a company name or ticker symbol.")
         else:
             search_url = "https://www.alphavantage.co/query"
             params = {
@@ -106,45 +104,45 @@ else:
                     validated_symbol = best_match["1. symbol"]
                     company_name = best_match["2. name"]
                     region = best_match["4. region"]
-                    st.success(f"✅ Found: {validated_symbol} - {company_name} ({region})")
+                    st.success(f"Found: {validated_symbol} - {company_name} ({region})")
 
                     existing = db.query(Portfolio).filter_by(user_id=st.session_state.user.id, symbol=validated_symbol).first()
                     if not existing:
                         db.add(Portfolio(user_id=st.session_state.user.id, symbol=validated_symbol))
                         db.commit()
-                        st.success(f"✅ Symbol {validated_symbol} added to your portfolio!")
+                        st.success(f"Symbol {validated_symbol} added to your portfolio!")
                         st.rerun()
                     else:
-                        st.info(f"ℹ️ Symbol {validated_symbol} is already in your portfolio.")
+                        st.info(f"Symbol {validated_symbol} is already in your portfolio.")
                 else:
-                    st.error(f"❌ No matches found for '{symbol_input}'. Try a different name or ticker.")
+                    st.error(f"No matches found for '{symbol_input}'. Try a different name or ticker.")
             else:
-                st.error("❌ Error calling Alpha Vantage SYMBOL_SEARCH API. Check your API key or internet connection.")
+                st.error("Error calling Alpha Vantage SYMBOL_SEARCH API. Check your API key or internet connection.")
 
-    # --- Initialize market feeds dict ---
+    
     if "market_feeds" not in st.session_state:
         st.session_state.market_feeds = {}
 
-    # Copy feeds dict for threads
+    
     market_feeds_copy = dict(st.session_state.market_feeds)
 
-    # --- Start market feeds for portfolio symbols ---
+    
     async def start_feeds(feeds_dict):
         for i, symbol in enumerate(symbols):
             if symbol not in feeds_dict:
                 feed = MarketDataFeed(symbol=symbol, api_key=API_KEY)
                 feeds_dict[symbol] = feed
                 asyncio.create_task(feed.run())
-                st.success(f"✅ Feed started for {symbol}")
-                await asyncio.sleep(15)  # avoid rate limit
+                st.success(f"Feed started for {symbol}")
+                await asyncio.sleep(15)  
 
     threading.Thread(target=asyncio.run, args=(start_feeds(market_feeds_copy),), daemon=True).start()
 
-    # --- Agent control ---
+    
     if "agents" not in st.session_state:
         st.session_state.agents = {}
 
-    st.sidebar.header("🤖 Agent Control")
+    st.sidebar.header("Agent Control")
     agent_type = st.sidebar.selectbox(
         "Agent Type",
         ["TrendFollower", "MeanReverter", "Sentiment", "Arbitrage", "MarketMaker", "PPO"]
@@ -175,7 +173,7 @@ else:
                 if symbol in market_feeds_copy:
                     market_feeds_copy[symbol].subscribe(agent)
             threading.Thread(target=asyncio.run, args=(agent.run(),), daemon=True).start()
-            st.sidebar.success(f"✅ Agent '{agent_name}' started on symbols: {symbols}")
+            st.sidebar.success(f"Agent '{agent_name}' started on symbols: {symbols}")
 
     if st.sidebar.button("Stop Agent"):
         agent_names = list(st.session_state.agents.keys())
@@ -184,17 +182,16 @@ else:
             agent = st.session_state.agents.get(agent_to_stop)
             if agent:
                 agent.stop()
-                st.sidebar.warning(f"🛑 Agent '{agent_to_stop}' stopped.")
+                st.sidebar.warning(f"Agent '{agent_to_stop}' stopped.")
             else:
                 st.sidebar.error("Agent not found!")
         else:
-            st.sidebar.info("ℹ️ No agents to stop.")
+            st.sidebar.info("No agents to stop.")
 
-    # --- Show live trades ---
-    st.subheader("📊 Live Trades")
+    st.subheader("Live Trades")
     trade_placeholder = st.empty()
 
-    if st.button("🔄 Refresh Trades"):
+    if st.button("Refresh Trades"):
         st.rerun()
 
     trades = order_book.trade_history
